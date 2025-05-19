@@ -1,12 +1,8 @@
 #Utility functions created for Lab 2
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 from scipy.optimize import curve_fit
 import json
-
-print("Matplotlib imported as plt:", plt)
 
 #Channel to Energy function
 def channel_to_energy(channel, slope, intercept):
@@ -135,13 +131,13 @@ def find_peaks_simple(data, start_channel, channel_step, cutoff_value, threshold
                     else:
                         current_start_channel = peak_index - int(channel_step / 2)
                         current_end_channel = min(current_start_channel + channel_step, len(data) + 1)
-                    print(f"Updated to: {current_start_channel} → {current_end_channel}")
+                    print(f"Updated to: {current_start_channel} → {current_end_channel}\n")
                 else:
                     #Skip to the next window if the peak has already been saved
                     print(f"Duplicate peak found for {key} at channel {data['Channel'].iloc[peak_index]} with value {data['Counts per Second'].iloc[peak_index]} (Max: {max_value}, Avg: {avg_value})")
                     current_start_channel += channel_step 
                     current_end_channel += channel_step
-                    print(f"Updated to: {current_start_channel} → {current_end_channel}")
+                    print(f"Updated to: {current_start_channel} → {current_end_channel}\n")
 
             else:
                 print(f"No peak found for {key} in channel range {current_start_channel} to {current_end_channel} (Max: {max_value}, Avg: ", avg_value * threshold_factor, ")")       #debug for loop checking
