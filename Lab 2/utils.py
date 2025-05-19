@@ -8,6 +8,10 @@ import json
 
 print("Matplotlib imported as plt:", plt)
 
+#Channel to Energy function
+def channel_to_energy(channel, slope, intercept):
+    return slope * channel + intercept
+
 #To superscript function
 def to_superscript(number):
     superscript_map = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
@@ -84,10 +88,15 @@ def normalize(data_dict):
 
 
 #Simple peak finding function
-def find_peaks_simple(data, start_channel, channel_step, threshold_factor=2):
+def find_peaks_simple(data, start_channel, channel_step, cutoff_value, threshold_factor=2):
+
+    ### Debugging
+    print(f"Data type: {type(data)}")
+    print(f"Data keys: {data.keys() if isinstance(data, dict) else 'Not a dictionary'}")
+
     peaks_dict = {}  # Dictionary to store peaks for each element
 
-    for element_name, data in data.items():
+    for key, data in data.items():
         peaks = []  # List to store peaks for the current element
         saved_indices = set()  # Set to keep track of saved indices
 
@@ -104,7 +113,7 @@ def find_peaks_simple(data, start_channel, channel_step, threshold_factor=2):
 
             # Check if the slice is empty
             if sliced_data.empty:
-                print(f"Warning: Empty slice for {element_name} from {current_start_channel} to {current_end_channel}.")
+                print(f"Warning: Empty slice for {key} from {current_start_channel} to {current_end_channel}.")
                 break
             
             #Calculate the max and average
@@ -114,38 +123,42 @@ def find_peaks_simple(data, start_channel, channel_step, threshold_factor=2):
             
 
             #Compare the max value to the threshold
-            if max_value > threshold_factor * avg_value and max_value > max(min_peak_value, 0.10):               
+            if max_value > threshold_factor * avg_value and max_value > max(min_peak_value, cutoff_value):               
                 if peak_index not in saved_indices:
                     # Save the peak if it hasn't been saved before
                     peaks.append(data.iloc[peak_index])
                     saved_indices.add(peak_index)  # Add the index to the set of saved indices
-                    print(f"Peak found for {element_name} at channel {data['Channel'].iloc[peak_index]} with value {data['Counts per Second'].iloc[peak_index]} (Max: {max_value}, Avg: {avg_value})")
-                    current_start_channel = peak_index - 25
-                    current_end_channel = min(current_start_channel + channel_step, len(data) + 1)
-                    #print(f"Updated to: {current_start_channel} → {current_end_channel}")
+                    print(f"Peak found for {key} at channel {data['Channel'].iloc[peak_index]} with value {data['Counts per Second'].iloc[peak_index]} (Max: {max_value}, Avg: {avg_value})")
+                    if peak_index - int(channel_step / 2) < 0:
+                        current_start_channel = 0
+                        current_end_channel += channel_step
+                    else:
+                        current_start_channel = peak_index - int(channel_step / 2)
+                        current_end_channel = min(current_start_channel + channel_step, len(data) + 1)
+                    print(f"Updated to: {current_start_channel} → {current_end_channel}")
                 else:
                     #Skip to the next window if the peak has already been saved
-                    print(f"Duplicate peak found for {element_name} at channel {data['Channel'].iloc[peak_index]} with value {data['Counts per Second'].iloc[peak_index]} (Max: {max_value}, Avg: {avg_value})")
+                    print(f"Duplicate peak found for {key} at channel {data['Channel'].iloc[peak_index]} with value {data['Counts per Second'].iloc[peak_index]} (Max: {max_value}, Avg: {avg_value})")
                     current_start_channel += channel_step 
                     current_end_channel += channel_step
-                    #print(f"Updated to: {current_start_channel} → {current_end_channel}")
+                    print(f"Updated to: {current_start_channel} → {current_end_channel}")
 
             else:
-                #print(f"No peak found for {element_name} in channel range {current_start_channel} to {current_end_channel} (Max: {max_value}, Avg: ", avg_value * threshold_factor, ")")       #debug for loop checking
-                current_start_channel = current_start_channel + 50
+                print(f"No peak found for {key} in channel range {current_start_channel} to {current_end_channel} (Max: {max_value}, Avg: ", avg_value * threshold_factor, ")")       #debug for loop checking
+                current_start_channel += channel_step
                 current_end_channel += channel_step
-                #print(f"Updated to: {current_start_channel} → {current_end_channel}")          #debug for loop checking
+                print(f"Updated to: {current_start_channel} → {current_end_channel}")          #debug for loop checking
 
         if peaks:
-            peaks_dict[element_name] = pd.DataFrame(peaks)
+            peaks_dict[key] = pd.DataFrame(peaks)
         else:
-            print(f"No peaks found for {element_name}.")
-            peaks_dict[element_name] = pd.DataFrame(columns=data.columns)  # Create an empty DataFrame with the same columns
+            print(f"No peaks found for {key}.")
+            peaks_dict[key] = pd.DataFrame(columns=data.columns)  # Create an empty DataFrame with the same columns
         
         # # Debugging: Print detected peaks (for loop checking)
-        # print(f"Peaks for {element_name}:")
-        # print(peaks_dict[element_name][['Channel', 'Counts per Second']])
-        # print("-" * 50)
+        print(f"Peaks for {key}:")
+        print(peaks_dict[key][['Channel', 'Counts per Second']])
+        print("-" * 50)
         
     return peaks_dict
 
@@ -168,3 +181,28 @@ def peak_to_compton(compton_data, gaussian_data, element, compton_range=(1040, 1
     ptc_ratio = peak_count_rate / compton_mean
 
     return ptc_ratio, compton_mean, peak_count_rate, peak_counts, compton_data_slice
+
+def load_data(file_path):
+    data = pd.read_csv(file_path, header=None, sep=r'\s+', names=["Counts"])
+
+    if data.empty:
+        print(f"Warning: {file_path} is empty.")
+        return None, None
+    else:
+        #Extract the total measuring time
+        total_time = data.iloc[0, 0]
+
+        #Remove the first two rows from the data
+        data = data.iloc[2:].reset_index(drop=True)
+
+        #Add a "Channels"" column to the data
+        data['Channel'] = np.arange(1, len(data) + 1)
+
+        #Divide the data values by the total measuring time to get counts per second
+        data['Counts per Second'] = data['Counts'] / total_time
+
+        #Reorder the data columns to have the "Row Number" first, then "Counts per Second"
+        data = data[['Channel', 'Counts per Second', 'Counts']]
+
+    return data, total_time
+
