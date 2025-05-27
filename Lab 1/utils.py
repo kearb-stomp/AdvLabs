@@ -58,6 +58,58 @@ def find_troughs_simple(spectrum_dict, key, trough_dict, window=10):
             troughs_df.at[i, 'Actual Trough'] = None  # or np.nan if you prefer
     return troughs_df
 
+#Normalizing function
+def normalize(data_dict):
+    normalized_data_dict = {}
+    
+    #Normalize the data for each set
+    for key, data in data_dict.items():
+        #Get the maximum value of the data
+        max_value = data['Intensity'].max()
+        
+        #Normalize the data
+        normalized_data = data.copy()
+        normalized_data['Normalized Intensity'] = normalized_data['Intensity'] / max_value
+        
+        #Add the normalized data to the dictionary
+        normalized_data_dict[key] = normalized_data
+                
+        print(f"Data for {key} successfully normalized\n")
+    return normalized_data_dict
+
+
+def noise_slice(df, cutoff=0.005, intensity_col='Normalized Intensity'):
+    # Reverse the DataFrame (so highest index is first)
+    df_rev = df.iloc[::-1].reset_index(drop=True)
+    # Find the first index where intensity is above the cutoff
+    above_cutoff = df_rev[df_rev[intensity_col] > cutoff]
+    if above_cutoff.empty:
+        # No value above cutoff, return empty DataFrame
+        return df
+    first_idx = above_cutoff.index[0]
+    # Slice the original DataFrame to keep only values after this point
+    # (since we reversed, need to convert index back)
+    keep_idx = len(df) - first_idx
+    return df.iloc[:keep_idx]
+
+def noise_cutoff_snr(df, intensity_col='NormDivWaterVapor', window=10, noise_std_thresh=0.001):
+    """
+    Slices the DataFrame from the point where signal falls into noise based on std dev in a sliding window.
+    """
+    # Reverse so we go from high to low wavenumbers
+    df_rev = df.iloc[::-1].reset_index(drop=True)
+
+    intensities = df_rev[intensity_col].values
+
+    for i in range(len(intensities) - window):
+        window_std = np.std(intensities[i:i+window])
+
+        if window_std < noise_std_thresh:
+            cutoff_idx = len(df) - i
+            return df.iloc[:cutoff_idx]
+
+    # If no cutoff found, return full DF
+    return df
 
 
 
