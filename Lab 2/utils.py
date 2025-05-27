@@ -131,19 +131,19 @@ def find_peaks_simple(data, start_channel, channel_step, cutoff_value, threshold
                     else:
                         current_start_channel = peak_index - int(channel_step / 2)
                         current_end_channel = min(current_start_channel + channel_step, len(data) + 1)
-                    print(f"Updated to: {current_start_channel} → {current_end_channel}\n")
+                    #print(f"Updated to: {current_start_channel} → {current_end_channel}\n")
                 else:
                     #Skip to the next window if the peak has already been saved
-                    print(f"Duplicate peak found for {key} at channel {data['Channel'].iloc[peak_index]} with value {data['Counts per Second'].iloc[peak_index]} (Max: {max_value}, Avg: {avg_value})")
+                    #print(f"Duplicate peak found for {key} at channel {data['Channel'].iloc[peak_index]} with value {data['Counts per Second'].iloc[peak_index]} (Max: {max_value}, Avg: {avg_value})")
                     current_start_channel += channel_step 
                     current_end_channel += channel_step
-                    print(f"Updated to: {current_start_channel} → {current_end_channel}\n")
+                    #print(f"Updated to: {current_start_channel} → {current_end_channel}\n")
 
             else:
-                print(f"No peak found for {key} in channel range {current_start_channel} to {current_end_channel} (Max: {max_value}, Avg: ", avg_value * threshold_factor, ")")       #debug for loop checking
+                #print(f"No peak found for {key} in channel range {current_start_channel} to {current_end_channel} (Max: {max_value}, Avg: ", avg_value * threshold_factor, ")")       #debug for loop checking
                 current_start_channel += channel_step
                 current_end_channel += channel_step
-                print(f"Updated to: {current_start_channel} → {current_end_channel}")          #debug for loop checking
+                #print(f"Updated to: {current_start_channel} → {current_end_channel}\n")          #debug for loop checking
 
         if peaks:
             peaks_dict[key] = pd.DataFrame(peaks)
