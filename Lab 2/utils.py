@@ -107,7 +107,7 @@ def find_peaks_simple(data, start_channel, channel_step, cutoff_value, threshold
             #print(f"Trying slice: {current_start_channel} to {current_end_channel}")       #Debug line for loop checking
 
             sliced_data = data.iloc[current_start_channel:current_end_channel]
-            min_peak_value = sliced_data['Counts per Second'].mean()
+            min_peak_value = sliced_data['Normalized Counts per Second'].mean()
 
             # Check if the slice is empty
             if sliced_data.empty:
@@ -115,9 +115,9 @@ def find_peaks_simple(data, start_channel, channel_step, cutoff_value, threshold
                 break
             
             #Calculate the max and average
-            max_value = sliced_data['Counts per Second'].max()
-            avg_value = sliced_data['Counts per Second'].mean()
-            peak_index = sliced_data['Counts per Second'].idxmax()
+            max_value = sliced_data['Normalized Counts per Second'].max()
+            avg_value = sliced_data['Normalized Counts per Second'].mean()
+            peak_index = sliced_data['Normalized Counts per Second'].idxmax()
             
 
             #Compare the max value to the threshold
@@ -126,7 +126,7 @@ def find_peaks_simple(data, start_channel, channel_step, cutoff_value, threshold
                     # Save the peak if it hasn't been saved before
                     peaks.append(data.iloc[peak_index])
                     saved_indices.add(peak_index)  # Add the index to the set of saved indices
-                    print(f"Peak found for {key} at channel {data['Channel'].iloc[peak_index]} with value {data['Counts per Second'].iloc[peak_index]} (Max: {max_value}, Avg: {avg_value})")
+                    print(f"Peak found for {key} at channel {data['Channel'].iloc[peak_index]} with value {data['Normalized Counts per Second'].iloc[peak_index]} (Max: {max_value}, Avg: {avg_value})")
                     if peak_index - int(channel_step / 2) < 0:
                         current_start_channel = 0
                         current_end_channel += channel_step
@@ -136,7 +136,7 @@ def find_peaks_simple(data, start_channel, channel_step, cutoff_value, threshold
                     #print(f"Updated to: {current_start_channel} → {current_end_channel}\n")
                 else:
                     #Skip to the next window if the peak has already been saved
-                    #print(f"Duplicate peak found for {key} at channel {data['Channel'].iloc[peak_index]} with value {data['Counts per Second'].iloc[peak_index]} (Max: {max_value}, Avg: {avg_value})")
+                    #print(f"Duplicate peak found for {key} at channel {data['Channel'].iloc[peak_index]} with value {data['Normalized Counts per Second'].iloc[peak_index]} (Max: {max_value}, Avg: {avg_value})")
                     current_start_channel += channel_step 
                     current_end_channel += channel_step
                     #print(f"Updated to: {current_start_channel} → {current_end_channel}\n")
@@ -155,7 +155,7 @@ def find_peaks_simple(data, start_channel, channel_step, cutoff_value, threshold
         
         # # Debugging: Print detected peaks (for loop checking)
         print(f"Peaks for {key}:")
-        print(peaks_dict[key][['Channel', 'Counts per Second']])
+        print(peaks_dict[key][['Channel', 'Normalized Counts per Second']])
         print("-" * 50)
         
     return peaks_dict
