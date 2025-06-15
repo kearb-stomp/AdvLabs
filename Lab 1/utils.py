@@ -111,6 +111,27 @@ def noise_cutoff_snr(df, intensity_col='NormDivWaterVapor', window=10, noise_std
     # If no cutoff found, return full DF
     return df
 
+def match_experimental_peaks_to_reference(experimental_peaks, reference_df, tolerance=1.0):
+    results = {}
+
+    for sample_name, peaks in experimental_peaks.items():
+        sample_matches = []
+        for peak in peaks:
+            # Filter reference table within tolerance range
+            matches = reference_df[
+                (reference_df["Energy_keV"] >= peak - tolerance) &
+                (reference_df["Energy_keV"] <= peak + tolerance)
+            ]
+            if not matches.empty:
+                for _, row in matches.iterrows():
+                    sample_matches.append({
+                        "Experimental_Peak": peak,
+                        "Matched_Energy": row["Energy_keV"],
+                        "Isotope": row["Nuclide"],
+                        "Intensity": row["Intensity_percent"]
+                    })
+        results[sample_name] = sample_matches
+    return results
 
 
 

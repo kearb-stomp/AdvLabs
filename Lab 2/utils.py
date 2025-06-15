@@ -28,7 +28,9 @@ def truncate(data_dict):
     #Truncate the data for each set
     for key, data in data_dict.items():
         threshold = 20                          #in total counts
-        
+
+        truncation_point = len(data)
+
         #Truncate the data
         for i in range(len(data) -1, -1, -1):
             if data['Counts'].iloc[i] > threshold:
@@ -201,4 +203,49 @@ def load_data(file_path):
         data = data[['Channel', 'Counts per Second', 'Counts']]
 
     return data, total_time
+
+def match_peaks(peaks_dict, reference_df, tolerance=1.0):
+    results = {}
+
+    for sample_name, df in peaks_dict.items():
+        sample_matches = []
+
+        for energy in df["Energy (keV)"]:
+            # Filter reference peaks within the tolerance window
+            matches = reference_df[
+                (reference_df["Energy (keV)"] >= energy - tolerance) &
+                (reference_df["Energy (keV)"] <= energy + tolerance)
+            ]
+
+            if not matches.empty:
+                # Calculate absolute difference and find the closest match
+                matches["abs_diff"] = (matches["Energy (keV)"] - energy).abs()
+                best_match = matches.loc[matches["abs_diff"].idxmin()]
+
+                sample_matches.append({
+                    "Sample": sample_name,
+                    "Experimental_Peak": energy,
+                    "Matched_Energy": best_match["Energy (keV)"],
+                    "Isotope": best_match["Nuclide"],
+                    "Intensity": best_match.get("Intensity_percent", None)
+                })
+
+        results[sample_name] = sample_matches
+    return results
+
+
+def results_to_dataframe(results):
+    all_matches = []
+
+    for sample_name, matches in results.items():
+        for match in matches:
+            all_matches.append({
+                "Sample": sample_name,
+                "Experimental_Peak (keV)": match["Experimental_Peak"],
+                "Matched_Energy (keV)": match["Matched_Energy"],
+                "Isotope": match["Isotope"],
+                "Intensity (%)": match["Intensity"]
+            })
+
+    return pd.DataFrame(all_matches)
 
