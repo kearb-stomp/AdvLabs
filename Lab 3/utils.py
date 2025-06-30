@@ -1,3 +1,5 @@
+import pandas as pd
+
 # Function to find the maximum intensity for each integer interval
 # def find_peaks(df, cutoff):
 #     peaks = []
